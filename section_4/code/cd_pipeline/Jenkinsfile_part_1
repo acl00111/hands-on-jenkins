@@ -49,12 +49,7 @@ def deploy(environment) {
 	bat 'docker ps -a'
 
 	// Intentar detener el contenedor (y capturar errores)
-	bat '''
-	for /f %%i in ('docker ps -f name=${containerName} -q') do (
-		echo Stopping container %%i
-		docker stop %%i || echo Failed to stop container %%i
-	)
-	'''
+	bat "for /F %%i in ('docker ps -f name=${containerName} -q') do (echo Stopping container %%i & docker stop %%i || echo Failed to stop container %%i)"
 
 	// Intentar eliminar el contenedor
 	bat '''
