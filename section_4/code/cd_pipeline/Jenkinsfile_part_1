@@ -44,8 +44,15 @@ def deploy(environment) {
     // Verificar si Docker está disponible en Windows
     bat "docker version || exit 1"
 
-    bat "docker ps -f name=${containerName} -q | findstr /R /C:\".*\" | for /F %i in ('findstr /R /C:\".*\"') do docker stop %i || echo No container to stop"
-    bat "docker ps -a -f name=${containerName} -q | findstr /R /C:\".*\" | for /F %i in ('findstr /R /C:\".*\"') do docker rm %i || echo No container to remove"
+    bat """
+      docker ps -f name=${containerName} -q | findstr /R /C:".*" | for /F "tokens=*" %%i in ('findstr /R /C:".*"') do docker stop %%i || echo No container to stop
+    """
+
+    bat """
+     docker ps -a -f name=${containerName} -q | findstr /R /C:".*" | for /F "tokens=*" %%i in ('findstr /R /C:".*"') do docker rm %%i || echo No container to remove
+    """
+
     bat "docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${BUILD_NUMBER}"
+
 
 }
