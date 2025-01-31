@@ -42,9 +42,12 @@ def deploy(environment) {
 		System.exit(0)
 	}
 
-	bat "docker ps -f name=${containerName} -q | xargs --no-run-if-empty docker stop"
-	bat "docker ps -a -f name=${containerName} -q | xargs -r docker rm"
-	bat "docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${BUILD_NUMBER}"
+	// Detener y eliminar contenedores anteriores (versión Windows)
+	bat 'for /f %i in (\'docker ps -f name=${containerName} -q\') do docker stop %i'
+	bat 'for /f %i in (\'docker ps -a -f name=${containerName} -q\') do docker rm %i'
 
+	// Iniciar nuevo contenedor
+	bat "docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${BUILD_NUMBER}"
 }
+
 
