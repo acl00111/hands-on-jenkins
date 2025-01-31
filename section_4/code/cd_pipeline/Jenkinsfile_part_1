@@ -32,33 +32,53 @@ def deploy(environment) {
     def containerName = ''
     def port = ''
 
+    // Verificar el entorno y asignar valores
     if ("${environment}" == 'dev') {
         containerName = "app_dev"
         port = "8888"
     } else {
-        println "Environment not valid"
+        println "Invalid environment"
         System.exit(0)
     }
 
-    // Verificar si Docker está funcionando
-    bat 'docker version || exit /b 255'
+    // Verificar si Docker está disponible en Windows
+    bat "docker version || exit 1"
 
-    // Mostrar contenedores antes de intentar eliminarlos
-    bat 'docker ps -a'
+    // Detener el contenedor si existe
+    try {
+        bat "docker ps -f name=${containerName} -q | findstr /R /C:\".*\" | for /F %i in ('findstr /R /C:\".*\"') do (echo Stopping container %i & docker stop %i) || echo No container to stop"
+    } catch (Exception e) {
+        echo "Error stopping container: ${e.getMessage()}"
+        currentBuild.result = 'FAILURE'
+        return
+    }
 
-    // Intentar detener el contenedor (y capturar errores)
-    bat "for /F %%i in ('docker ps -f \"name=${containerName}\" -q') do (echo Stopping container %%i & docker stop %%i || echo Failed to stop container %%i)"
+    // Eliminar el contenedor si existe
+    try {
+        bat "docker ps -a -f name=${containerName} -q | findstr /R /C:\".*\" | for /F %i in ('findstr /R /C:\".*\"') do (echo Removing container %i & docker rm %i) || echo No container to remove"
+    } catch (Exception e) {
+        echo "Error removing container: ${e.getMessage()}"
+        currentBuild.result = 'FAILURE'
+        return
+    }
 
-    // Intentar eliminar el contenedor
-    bat '''
-    for /F %%i in ('docker ps -a -f "name=${containerName}" -q') do (
-        echo Removing container %%i
-        docker rm %%i || echo Failed to remove container %%i
-    )
-    '''
+    // Construir la imagen si no se ha construido
+    try {
+        bat "docker build -t hands-on-jenkins/myapp:${BUILD_NUMBER} ."
+    } catch (Exception e) {
+        echo "Error building Docker image: ${e.getMessage()}"
+        currentBuild.result = 'FAILURE'
+        return
+    }
 
-    // Iniciar nuevo contenedor
-    bat "docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${BUILD_NUMBER}"
+    // Crear y ejecutar el contenedor con la nueva imagen
+    try {
+        bat "docker run -d -p ${port}:5000 --name ${containerName} hands-on-jenkins/myapp:${BUILD_NUMBER}"
+    } catch (Exception e) {
+        echo "Error running container: ${e.getMessage()}"
+        currentBuild.result = 'FAILURE'
+        return
+    }
 }
 
 
