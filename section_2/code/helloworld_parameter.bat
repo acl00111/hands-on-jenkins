@@ -1,1 +1,2 @@
-echo "Hello ${name}"
+@echo off
+echo Hello %name%
